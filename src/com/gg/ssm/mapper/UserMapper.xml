@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper   
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd"> 
+
+ <mapper namespace="com.gg.ssm.mapper.UserMapper">
+ 	<sql id = "query_user_sql_where">	
+			<if test="userName!=null">
+				 AND USER_NAME LIKE  '%${userName}%'	 
+			</if>
+			<if test="loginName!=null">
+				 AND LOGIN_NAME  =  #{loginName}
+			</if>
+			<if test="password!=null">
+				 AND PASSWORD =#{password}
+			</if>		 
+	</sql>
+	<sql id="all_user_columns">
+		ID ,USER_NAME ,LOGIN_NAME,PASSWORD,AGE,SEX,DEPT_ID,BIRTHDAY,TV_UPDATE 	
+	</sql>
+	<!-- 登录 -->
+ 	<select id="login" resultType="user" parameterType="user">
+ 		SELECT 
+		 <include refid="all_user_columns"></include>
+		 FROM M_USER   
+		<!--where标签有两个用途：1:添加sql中的where关键字 2:判断第一个条件不需要and  -->
+		<where>
+			<include refid="query_user_sql_where"></include>
+		</where>
+ 	</select>
+ 	<!-- 查询所有 -->
+ 	<select id="getUserList" resultType="user">
+ 		select <include refid="all_user_columns"></include> from m_user
+ 	</select>
+ 	<!-- 通过id查询用户信息 -->
+ 	<select id="getUserId" resultType="user">
+ 		select <include refid="all_user_columns"></include> from m_user where id = #{id}
+ 	</select>
+ 	<!-- 通过id修改用户信息 -->
+ 	<update id="upUserId" parameterType="user">
+ 		UPDATE M_USER 
+		<set>			 
+			<if test = "userName!=null">
+				USER_NAME = #{userName},
+			</if>
+			<if test = "loginName!=null">
+				LOGIN_NAME = #{loginName},
+			</if>
+			<if test = "password!=null">
+				PASSWORD = #{password},
+			</if>
+			<if test = "age!=null">
+				AGE = #{age},
+			</if>
+			<if test = "sex!=null">
+				SEX = #{sex},
+			</if>
+			<if test = "deptId!=null">
+				DEPT_ID = #{deptId},
+			</if>
+			<if test = "birthday!=null">
+				BIRTHDAY = #{birthday},
+			</if>
+			<if test = "tvUpdate!=null">
+				TV_UPDATE = #{tvUpdate},
+			</if>
+		</set>
+		WHERE ID = #{id}
+ 	</update>
+ 	<!-- 新增用户 -->
+ 	<insert id="addUser" parameterType="user">
+ 		insert into m_user(USER_NAME ,LOGIN_NAME,PASSWORD,AGE,SEX,DEPT_ID,BIRTHDAY,TV_UPDATE ) values(#{userName},#{loginName},#{password},#{age},#{sex},#{deptId},#{birthday},#{tvUpdate})
+ 	</insert>
+ 	<!-- 删除用户 -->
+ 	<delete id="delUserId" parameterType="java.lang.Integer">
+ 		delete from m_user where id = #{id}
+ 	</delete>
+ </mapper>
+

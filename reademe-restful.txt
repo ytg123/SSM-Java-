@@ -1,0 +1,57 @@
+restful风格的URL请求:
+	springmvc的url请求方式:
+		1:*.do *.action 类似于  /user/addUser.do
+		2:/  类似于  /user/addUser
+		注意:第二种方式包含第一种,但当我们的页面包含静态文件.js .css img 的时候springmvc会将它们认为是一个url请求去匹配,结果404
+		解决方法:
+			a:在springmvc.xml中配置
+				 ①<!-- 配置静态资源的访问 -->
+        		 <mvc:resources location="/static/" mapping="/static/**"></mvc:resources>
+        		 ②<mvc:default-servlet-handler/>
+        		 ③ 在web.xml中配置
+        		 	  <servlet-mapping>
+					  		<servlet-name>default</servlet-name>
+					  		<url-pattern>*.js</url-pattern>
+					  </servlet-mapping>
+					  
+Restful是什么:
+	就是目前最流行的一种互联网软件架构思想,它结构清晰,符合标准,易于理解,扩展方便
+	rest:Representational  State  Transfer  资源表现层的状态转化
+	资源: 就是网络上的一个实体 ,或者说是网络上的一个具体信息,比如系统中存在用户信息,图片甚至一首歌
+		 我们可以用URI(统一资源定位符)来指向它  http://127.0.0.1:8080/user
+		
+	表现层:资源其实有多种表现形式,就是我们把资源具体呈现出来的方式,比如:返回用户信息有多种方式 :xml,json,string,byte[]
+		 URI只代表资源的位置,他的具体表现形式,应该在http的请求头信息用Accept和 content-type
+		 
+	状态转化: 客户端通过http协议访问服务端资源,通过http协议里面定义好的四个动词:GET POST PUT DELETE来讲资源进行状态转化
+			GET 用来获取资源
+			POST 用来新增资源
+			PUT 用来更新资源
+			DELETE 用来删除资源 
+			put和delete虽然是http协议的规范 ,但是遗憾的是,所有的无论是html4还是h5都不支持,所以我们在实际开开发过程当中
+				要模拟这两种状态
+			普通的URL开发方式  :http://tanzhouoa.com/getUserList  addUser deleteUser updateUser
+			Restful风格的URL :http://tanzhouoa.com/users/  method = "get"  获取用户列表
+							http://tanzhouoa.com/user/1  method = "get"  获取用户明细
+							http://tanzhouoa.com/user  method = "post" 增加用户
+							http://tanzhouoa.com/user  method="delete"  删除用户
+							http://tanzhouoa.com/user  method = "put"  修改用户
+							
+			http://tanzhouoa.com/transfer?fromuser="keven"&&toUser="qide"
+			http://tanzhouoa.com/from/keven/to/qide
+Restful怎么实现:
+	SpringMVC提供了对rest父类风格很友好的支持
+	*支持无后缀URI匹配,是一种很优雅的rest父类风格的URI
+	*对于html不支持的delete和put两种提交方式,提供了一个过滤器尽行转化:设置一个_method=delete/put的元素,通过springmvc提供的过滤器,就能够转化成http协议的delete和put的提交方式,可以在springmvc的@RequestMapping注解里面获取
+		a:配置hiddenHttpMethodFilter过滤器(web.xml)
+			 <filter>
+			  	<filter-name>hiddenHttpMethodFilter</filter-name>
+			  	<filter-class>org.springframework.web.filter.HiddenHttpMethodFilter</filter-class>
+			  </filter>
+			  <filter-mapping>
+			  	<filter-name>hiddenHttpMethodFilter</filter-name>
+			  	<url-pattern>/*</url-pattern>
+			  </filter-mapping>
+		b:@RequestMapping(value="user/{id}",method=RequestMethod.DELETE)   匹配url 
+		c:@PathVariable Integer id  参数前加@PathVariable匹配参数
+	

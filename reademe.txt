@@ -1,0 +1,171 @@
+Spring + SpringMVC + Mybatis之融合:
+	1:导jar包
+	2:在spring的配置文件applicationContext.xml中
+		*配置sqlSessionFactory
+		*配置数据源
+		*配置管理mapper对象
+	3:将spring的IOC委托给web容器管理
+		在web.xml中配置spring提供的监听器以及制定spring配置文件applicationContext.xml的位置
+		<!-- 将spring的IOC容器委托给web容器管理  spring提供的监听器   加载spring配置文件即IOC容器-->
+		  <context-param>
+		  	<param-name>contextConfigLocation</param-name>
+		  	<param-value>classpath:applicationContext.xml</param-value>
+		  </context-param>
+		  <listener>
+		  	<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+		  </listener>
+	4:springMVC的配置:
+		在web.xml中配置前端控制DispatcherServlet,并指定springmvc.xml的位置
+		<!-- springmvc  配置前端控制器  DispatcherServlet 并指定springmvc.xml的位置-->
+		  <servlet>
+		  		<servlet-name>springmvc</servlet-name>
+		  		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+		  		<!-- 指定springmvc.xml的位置 -->
+		  		<init-param>
+		  			<param-name>contextConfigLocation</param-name>
+		  			<param-value>classpath:springmvc.xml</param-value>
+		  		</init-param>
+		  </servlet>
+		  <servlet-mapping>
+		  		<servlet-name>springmvc</servlet-name>
+		  		<url-pattern>*.do</url-pattern>
+		  </servlet-mapping>
+		  
+		  注意点:SpringMVC是Spring的一个子容器,但我们一般不会讲springmvc的配置和spring的配置放一起
+		  	Spring的配置文件一般放 数据源,事务控制和其他框架的整合,注解驱动(service和dao层类的注册和依赖关系)
+		  	SpringMVC一般包括Controller层的注册以及springmvc的一些相关配置(映射器  适配器   类型转换  异常配置   国际化)
+		  	
+		  	特别注意:在进行注解扫描时,要在spring配置文件中要剔除controller的扫描
+		  		<context:component-scan base-package="com.gg.sysmanager.*" >
+		        	<!-- 过滤掉控制层的注解 -->
+		        	<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+		        </context:component-scan>
+		  		在springmvc的配置文件中只能包含controller的扫描    重点:use-default-filters="false"
+		  		<context:component-scan base-package="com.gg.sysmanager.*" use-default-filters="false">
+		       		<!-- 只能包含controller扫描 use-default-filters="false"-->
+		       		<context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+		        </context:component-scan>
+		        
+		   特别注意:springmvc子容器里面的对象可以依赖spring父容器的对象,反之不行
+		   
+	5:在web.xml中配置编码过滤器
+		  <!--编码过滤器  -->
+		  <filter>
+			  <filter-name>CharacterEncodingFilter</filter-name>
+			  <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
+		      <init-param>
+		        <param-name>encoding</param-name>
+		        <param-value>UTF-8</param-value>
+		      </init-param>
+		      <init-param>
+		      	<param-name>forceEncoding</param-name>
+				<param-value>true</param-value>
+			  </init-param>
+		  </filter>
+		  <filter-mapping>
+		    <filter-name>CharacterEncodingFilter</filter-name>
+		    <url-pattern>/*</url-pattern>
+		  </filter-mapping>	
+	6:登录和用户功能
+		*在开发一个功能时,首先要根据业务需求来确定表结构
+		*如果前后端混合开发,建议从dao层开发,提供通用的dao层接口
+		*service层的接口主要是面向控制层的调用,然后在service里面进行业务的逻辑处理,调用dao层接口
+		*Controller层主要面向页面的url请求
+		
+		批量添加和修改时:
+			当传入的是java.util.List 时 collection = "list"
+			当传入的是数组时  cellection = "array"
+			当传入的包装类或是map时  cellection为map的key或包装类的属性
+			注意:在mysql中,用多条语句运行的方式,需要在url连接开启allowMultiQueries设置
+			<foreach collection="list" item="user" index="index" open="" close="" separator=";"></foreach>
+			
+			jdbc.url=jdbc:mysql://127.0.0.1:3306/jdbc?useUnicode=true&characterEncoding=utf-8&allowMultiQueries=true
+			allowMultiQueries=true  允许批量操作
+			
+			sql:
+				<update id = "updateUserBatch" parameterType= "java.util.List">
+					<foreach collection="list" item = "user" index="index" open="" close="" separator=";">
+						UPDATE M_USER 
+						<set>			 
+							<if test = "user.userName!=null">
+								USER_NAME = #{user.userName},
+							</if>
+							<if test = "user.loginName!=null">
+								LOGIN_NAME = #{user.loginName},
+							</if>
+							<if test = "user.password!=null">
+								PASSWORD = #{user.password},
+							</if>
+							<if test = "user.age!=null">
+								AGE = #{user.age},
+							</if>
+							<if test = "user.sex!=null">
+								SEX = #{user.sex},
+							</if>
+							<if test = "user.deptId!=null">
+								DEPT_ID = #{user.deptId},
+							</if>
+							<if test = "user.birthday!=null">
+								BIRTHDAY = #{user.birthday},
+							</if>
+							<if test = "user.tvUpdate!=null">
+								TV_UPDATE = #{user.tvUpdate},
+							</if>			 
+						</set>
+						WHERE USER_ID = #{user.userId}
+					
+					
+					</foreach>
+					
+					
+				</update>
+		批量增加sql(mybatis):
+			<!--批量增加用户  -->
+			<insert id="addUserBatch" parameterType = "java.util.List">	
+				<!--在类似于mysql的数据库,有自增长id的设置时,在插入成功后,返回主键,放入对象中  -->
+				<selectKey keyProperty="userId" resultType="long" order="AFTER" >
+		               SELECT LAST_INSERT_ID() as userId
+		        </selectKey>
+		        	  
+				INSERT INTO M_USER(USER_NAME, LOGIN_NAME, PASSWORD,DEPT_ID,
+					AGE,SEX,BIRTHDAY,TV_UPDATE)
+				VALUES
+				<foreach collection="list" item="user" index="index" separator="," >  
+		        	(#{user.userName},#{user.loginName},#{user.password},#{user.deptId},
+						#{user.age},#{user.sex},#{user.birthday},#{user.tvUpdate})  
+		   		</foreach> 	
+			</insert>
+		批量删除:
+			<!--删除用户  --> 
+			<delete id = "delUserBatch" parameterType = "java.util.List">
+				DELETE FROM M_USER 
+				<where>
+		 			<foreach collection="list" 
+						open=" AND USER_ID IN (" close = ")"  item = "id" separator=",">
+						#{id}
+					</foreach>		
+				</where>
+			</delete>
+			
+登录拦截实战:
+	只有登录成功的用户才访问功能页面
+		步骤:登录成功后,将用户信息放入session
+			当除了登录验证的url请求的其他url请求,
+			在拦截器的preHandle方法里面判断session是否有用户信息,如果有,则放行通过,如果没有就返回登录页
+			public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object obj) throws Exception {
+				//先过滤匿名访问地址
+				String url = request.getRequestURI();
+				if(url.indexOf("login.do") >= 0){
+					return true;
+				}
+				//判断session中是否有用户信息,如果有继续往下执行,否则返回到登录页面
+				HttpSession  session = request.getSession();
+				String loginName = (String)session.getAttribute("loginName");
+				if(loginName != null){
+					return true;
+				}else{
+					request.getRequestDispatcher("/").forward(request, response);
+					return false;
+				}
+				
+			}
